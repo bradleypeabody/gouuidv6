@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
-	"sync/atomic"
+	"sync"
 	"time"
 )
 
@@ -76,14 +76,24 @@ func (u UUID) Time() time.Time {
 // Return a new UUID initialized to a proper value according to "Version 6" rules.
 func New() UUID {
 
-	var ret UUID
+	// NOTE: We intentionally ignore RFC 4122 section 4.2.1.2. and in the case
+	// that UUIDs are requested within the same 100-nanosecond time interval,
+	// we just increment the clock sequence - the same thing the RFC advises
+	// in the case of the clock moving backward (section 4.1.5).
 
-	// increment and get clock sequence - a simple and fast way of using
-	// clock sequence to avoid duplication
-	cs := atomic.AddUint32(&clockseq, 1)
-
-	// get timestamp
+	// get current timestamp
 	tsval := ts()
+
+	newlock.Lock()
+	// if clock is the same as last time or moved backward, increment clockseq
+	if lastts >= tsval {
+		clockseq++
+	}
+	lastts = tsval
+	cs := clockseq
+	newlock.Unlock()
+
+	var ret UUID
 
 	// shift up 4 bits, mask back in the relevant lower part and set the version
 	hi := uint64(((tsval << 4) & 0xFFFFFFFFFFFF0000) | (tsval & 0x0FFF) | 0x6000)
@@ -103,6 +113,12 @@ func ts() uint64 { return tsoff + uint64(time.Now().UnixNano()/100) }
 
 // UUID static time offset (see https://play.golang.org/p/pPJd86iZMW)
 const tsoff = uint64(122192928000000000)
+
+// lock we use when creating new UUIDs
+var newlock sync.Mutex
+
+// last timestamp used
+var lastts uint64
 
 // clock sequence value (32-bit so we can use sync/atomic)
 var clockseq uint32
