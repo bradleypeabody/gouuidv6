@@ -15,6 +15,13 @@ var bigEnd = binary.BigEndian
 // "Version 6" UUID.
 type UUID [16]byte
 
+// Slice of UUIDs, sorts using first 64bits (where the time is)
+type UUIDSlice []UUID
+
+func (s UUIDSlice) Len() int           { return len(s) }
+func (s UUIDSlice) Less(i, j int) bool { return bigEnd.Uint64(s[i][:8]) < bigEnd.Uint64(s[j][:8]) }
+func (s UUIDSlice) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+
 // Textual representation per RFC 4122, e.g. "f81d4fae-7dec-11d0-a765-00a0c91e6bf6"
 func (u UUID) String() string {
 	return fmt.Sprintf("%08x-%04x-%04x-%04x-%012x", u[:4], u[4:6], u[6:8], u[8:10], u[10:])

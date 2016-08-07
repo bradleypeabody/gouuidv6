@@ -3,6 +3,7 @@ package gouuidv6
 import (
 	"encoding/json"
 	"runtime"
+	"sort"
 	"strings"
 	"sync"
 	"testing"
@@ -136,6 +137,54 @@ func TestDuplicates(t *testing.T) {
 		}
 	}
 
-	t.Logf("Prefix with highest count was: %q(%d) [this number would have to be 16384 before you would get a duplicate]", maxp, max)
+	t.Logf("Prefix with highest count was: %q (%d)", maxp, max)
+
+}
+
+func TestSort(t *testing.T) {
+
+	c := 1 << 18 // 131072
+	uuids1 := make(UUIDSlice, 0, c)
+	uuids2 := make(UUIDSlice, 0, c)
+	times := make([]time.Time, 0, c)
+	for i := 0; i < c; i++ {
+		u := New()
+		uuids1 = append(uuids1, u)
+		uuids2 = append(uuids2, u)
+		times = append(times, u.Time())
+	}
+
+	sort.Sort(uuids1)
+	lastt := time.Time{}
+	for i := 0; i < c; i++ {
+		// make sure they came in sequence
+		if uuids1[i] != uuids2[i] {
+			t.Fatalf("UUIDs out of sequence at index %d", i)
+		}
+		ut := times[i]
+		if lastt.After(ut) {
+			t.Fatalf("Time that should have been prior was after at index %d", i)
+		}
+		lastt = ut
+	}
+
+	// also just throw a few random ones together and make sure sort does
+	// the right thing with them
+	uuids := make(UUIDSlice, 5)
+	uuids[0], _ = Parse(`1e65ced7-cdca-6947-0405-c8bcc8a0b1fd`)
+	uuids[1], _ = Parse(`1e65ced7-cdca-694f-0405-c8bcc8a0b1fd`)
+	uuids[2], _ = Parse(`1e65ced7-cdcb-679f-0405-c8bcc8a0b1fd`) // last
+	uuids[3], _ = Parse(`1e65ced7-cdc6-6e80-0405-c8bcc8a0b1fd`) // first
+	uuids[4], _ = Parse(`1e65ced7-cdc6-6e8e-0405-c8bcc8a0b1fd`)
+
+	sort.Sort(uuids)
+
+	if uuids[0].String() != `1e65ced7-cdc6-6e80-0405-c8bcc8a0b1fd` {
+		t.Fatalf("Wrong first value, got %s instead", uuids[0].String())
+	}
+
+	if uuids[4].String() != `1e65ced7-cdcb-679f-0405-c8bcc8a0b1fd` {
+		t.Fatalf("Wrong last value, got %s instead", uuids[4].String())
+	}
 
 }
