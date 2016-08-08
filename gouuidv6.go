@@ -1,3 +1,8 @@
+// Implements "Version 6" UUIDs in Go.  See http://bradleypeabody.github.io/uuidv6/
+// UUIDs sort correctly by time when naively sorted as raw bytes, have a Time()
+// function that returns time the UUID was created and have a reasonable
+// guarantee of being globally unique (based on the specifications from
+// RFC 4122, with a few intentional exceptions.)
 package gouuidv6
 
 import (
@@ -69,6 +74,11 @@ func (u UUID) IsNil() bool { return (bigEnd.Uint64(u[0:8]) | bigEnd.Uint64(u[8:1
 // Extract and return the time from the UUID.
 func (u UUID) Time() time.Time {
 
+	// verify version and variant fields
+	if !((u[6]&0xF0) == 0x60 && (u[8]&0xC0) == 0x80) {
+		return time.Time{} // return zero time if not a version 6 UUID
+	}
+
 	hi := uint64(bigEnd.Uint64(u[:8]))
 
 	// chop the version data out and form the number we want
@@ -106,7 +116,7 @@ func New() UUID {
 	hi := uint64(((tsval << 4) & 0xFFFFFFFFFFFF0000) | (tsval & 0x0FFF) | 0x6000)
 
 	// 2 bit variant, 14 bits clock sequence, 48 bits node
-	lo := uint64(0x80) | (uint64(cs&0x3fff) << 48) | node
+	lo := (uint64(0x8000) << 48) | (uint64(cs&0x3fff) << 48) | node
 
 	bigEnd.PutUint64(ret[:8], hi)
 	bigEnd.PutUint64(ret[8:], lo)
@@ -152,9 +162,17 @@ func init() {
 
 	// no node yet, make it random
 	if node == 0 {
-		rand.Read(b)
-		// mask out high 2 bytes and set the multicast bit
-		node = (bigEnd.Uint64(b[:8]) & 0x0000FFFFFFFFFFFF) | 0x0000010000000000
+		RandomizeNode()
 	}
 
+}
+
+// Set the 'node' part of the UUID to a random value, instead of using one
+// of the MAC addresses from the system.  Use this if you are concerned about
+// the privacy aspect of using a MAC address.
+func RandomizeNode() {
+	b := make([]byte, 8)
+	rand.Read(b)
+	// mask out high 2 bytes and set the multicast bit
+	node = (bigEnd.Uint64(b[:8]) & 0x0000FFFFFFFFFFFF) | 0x0000010000000000
 }

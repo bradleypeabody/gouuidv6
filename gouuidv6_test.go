@@ -171,19 +171,19 @@ func TestSort(t *testing.T) {
 	// also just throw a few random ones together and make sure sort does
 	// the right thing with them
 	uuids := make(UUIDSlice, 5)
-	uuids[0], _ = Parse(`1e65ced7-cdca-6947-0405-c8bcc8a0b1fd`)
-	uuids[1], _ = Parse(`1e65ced7-cdca-694f-0405-c8bcc8a0b1fd`)
-	uuids[2], _ = Parse(`1e65ced7-cdcb-679f-0405-c8bcc8a0b1fd`) // last
-	uuids[3], _ = Parse(`1e65ced7-cdc6-6e80-0405-c8bcc8a0b1fd`) // first
-	uuids[4], _ = Parse(`1e65ced7-cdc6-6e8e-0405-c8bcc8a0b1fd`)
+	uuids[0], _ = Parse(`1e65ced7-cdca-6947-8405-c8bcc8a0b1fd`)
+	uuids[1], _ = Parse(`1e65ced7-cdca-694f-8405-c8bcc8a0b1fd`)
+	uuids[2], _ = Parse(`1e65ced7-cdcb-679f-8405-c8bcc8a0b1fd`) // last
+	uuids[3], _ = Parse(`1e65ced7-cdc6-6e80-8405-c8bcc8a0b1fd`) // first
+	uuids[4], _ = Parse(`1e65ced7-cdc6-6e8e-8405-c8bcc8a0b1fd`)
 
 	sort.Sort(uuids)
 
-	if uuids[0].String() != `1e65ced7-cdc6-6e80-0405-c8bcc8a0b1fd` {
+	if uuids[0].String() != `1e65ced7-cdc6-6e80-8405-c8bcc8a0b1fd` {
 		t.Fatalf("Wrong first value, got %s instead", uuids[0].String())
 	}
 
-	if uuids[4].String() != `1e65ced7-cdcb-679f-0405-c8bcc8a0b1fd` {
+	if uuids[4].String() != `1e65ced7-cdcb-679f-8405-c8bcc8a0b1fd` {
 		t.Fatalf("Wrong last value, got %s instead", uuids[4].String())
 	}
 
