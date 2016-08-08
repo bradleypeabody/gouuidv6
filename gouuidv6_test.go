@@ -42,6 +42,11 @@ func TestUUIDSimple(t *testing.T) {
 		t.Fatalf("String conversion did not get expected value, wanted %q, got %q", str, uuid.String())
 	}
 
+	// example of uuidv6 generated from another source (and manually pasted in here)
+	str2 := `1E65DA3A-36E8-617E-9FCC-C8BCC8A0B17D`
+	uuid2, _ := Parse(str2)
+	t.Logf("Extracted time: %v", uuid2.Time())
+
 }
 
 func TestUUIDJSON(t *testing.T) {
