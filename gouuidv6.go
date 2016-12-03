@@ -90,8 +90,7 @@ func (u UUID) Time() time.Time {
 	return time.Unix(ut/int64(time.Second), ut%int64(time.Second))
 }
 
-// Return a new UUID initialized to a proper value according to "Version 6" rules.
-func New() UUID {
+func NewFromTime(t time.Time) UUID {
 
 	// NOTE: We intentionally ignore RFC 4122 section 4.2.1.2. and in the case
 	// that UUIDs are requested within the same 100-nanosecond time interval,
@@ -99,7 +98,7 @@ func New() UUID {
 	// in the case of the clock moving backward (section 4.1.5).
 
 	// get current timestamp
-	tsval := ts()
+	tsval := tstime(t)
 
 	newlock.Lock()
 	// if clock is the same as last time or moved backward, increment clockseq
@@ -125,8 +124,13 @@ func New() UUID {
 
 }
 
+// Return a new UUID initialized to a proper value according to "Version 6" rules.
+func New() UUID { return NewFromTime(time.Now()) }
+
 // Returns a timestamp appropriate for UUID time
 func ts() uint64 { return tsoff + uint64(time.Now().UnixNano()/100) }
+
+func tstime(t time.Time) uint64 { return tsoff + uint64(t.UnixNano()/100) }
 
 // UUID static time offset (see https://play.golang.org/p/pPJd86iZMW)
 const tsoff = uint64(122192928000000000)
