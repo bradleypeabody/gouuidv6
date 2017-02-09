@@ -157,6 +157,7 @@ func TestSort(t *testing.T) {
 		uuids1 = append(uuids1, u)
 		uuids2 = append(uuids2, u)
 		times = append(times, u.Time())
+		time.Sleep(time.Microsecond)
 	}
 
 	sort.Sort(uuids1)
