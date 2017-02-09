@@ -7,6 +7,7 @@ package gouuidv6
 
 import (
 	"crypto/rand"
+	"database/sql/driver"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
@@ -63,6 +64,20 @@ func (u *UUID) UnmarshalJSON(data []byte) error {
 	}
 	*u, err = Parse(s)
 	return err
+}
+
+func (u UUID) Value() (driver.Value, error) {
+	return []byte(u[:]), nil
+}
+
+func (u *UUID) Scan(value interface{}) error {
+	switch v := value.(type) {
+	case []byte:
+		copy(u[:], v)
+		return nil
+	}
+	// TODO: should we support strings, even though it's not a good way to go?
+	return fmt.Errorf("cannot convert from UUID to sql driver type %T", value)
 }
 
 // Return as byte slice.
