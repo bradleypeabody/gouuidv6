@@ -31,6 +31,10 @@ func (s UUIDSlice) Less(i, j int) bool { return bigEnd.Uint64(s[i][:8]) < bigEnd
 
 func (s UUIDSlice) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
 
+func (u UUID) Compare(to UUID) bool {
+	return bigEnd.Uint64(u[:8]) <= bigEnd.Uint64(to[:8])
+}
+
 // Textual representation per RFC 4122, e.g. "f81d4fae-7dec-11d0-a765-00a0c91e6bf6"
 func (u UUID) String() string {
 	return fmt.Sprintf("%08x-%04x-%04x-%04x-%012x", u[:4], u[4:6], u[6:8], u[8:10], u[10:])
