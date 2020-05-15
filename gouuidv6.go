@@ -133,7 +133,12 @@ func NewFromTime(t time.Time) UUID {
 	hi := uint64(((tsval << 4) & 0xFFFFFFFFFFFF0000) | (tsval & 0x0FFF) | 0x6000)
 
 	// 2 bit variant, 14 bits clock sequence, 48 bits node
-	lo := (uint64(0x8000) << 48) | (uint64(cs&0x3fff) << 48) | node
+	lo := (uint64(0x8000) << 48) | (uint64(cs&0x3fff) << 48)
+	if alwaysRandomizeNode {
+		lo = lo | getRandomNode()
+	} else {
+		lo = lo | node
+	}
 
 	bigEnd.PutUint64(ret[:8], hi)
 	bigEnd.PutUint64(ret[8:], lo)
@@ -165,6 +170,9 @@ var clockseq uint32
 // the node part - based on interface MAC address or random
 var node uint64
 
+// do we generate new node each time we generate new UUID
+var alwaysRandomizeNode bool
+
 func init() {
 
 	b := make([]byte, 8)
@@ -193,8 +201,17 @@ func init() {
 // of the MAC addresses from the system.  Use this if you are concerned about
 // the privacy aspect of using a MAC address.
 func RandomizeNode() {
+	node = getRandomNode()
+}
+
+func getRandomNode() uint64 {
 	b := make([]byte, 8)
 	rand.Read(b)
 	// mask out high 2 bytes and set the multicast bit
-	node = (bigEnd.Uint64(b[:8]) & 0x0000FFFFFFFFFFFF) | 0x0000010000000000
+	return (bigEnd.Uint64(b[:8]) & 0x0000FFFFFFFFFFFF) | 0x0000010000000000
+}
+
+// AlwaysRandomizeNode sets the uuid generation in such way that each uuid has a random
+func AlwaysRandomizeNode() {
+	alwaysRandomizeNode = true
 }
