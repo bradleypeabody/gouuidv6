@@ -1,0 +1,66 @@
+name: Test gouuidv6 library
+
+on:
+  push:
+    # We want to run the workflow on all branches.
+    # But you can restrict the runs if necessary.
+    branches:
+      - "*"
+
+# this workflow will generate code stubs from the protobuf message & grpc service defintions in this repo
+# and uploads those code stub packages to a package manager for client retrieval
+# NOTE: Lot of DRY violations here... 
+# but this is the most transparent until GH Actions has orbs & aliases, etc... like CircleCI
+
+jobs:
+  lint:
+    name: linter
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Set up go
+        uses: actions/setup-go@v1
+        with:
+          go-version: '^1.15.14'
+        id: go
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v1
+      - name: Install golangci-lint
+        run: curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh| sh -s -- -b $(go env GOPATH)/bin v1.18.0
+      - name: Run golangci-lint
+        run: $(go env GOPATH)/bin/golangci-lint run
+
+  test:
+    name: test
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Set up go
+        uses: actions/setup-go@v1
+        with:
+          go-version: '^1.15.14'
+        id: go
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v1
+      - name: Run go test
+        run: go test -cover
+
+  semver:
+    name: semantic version tagging on merge to master branch
+    runs-on: ubuntu-20.04
+    needs: [lint, test]
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+        with: 
+          fetch-depth: 0
+      - name: setup/install go
+        uses: actions/setup-go@v2
+        with:
+          go-version: '^1.15.14'
+      - name: install semver package
+        run: go get github.com/stevenmatthewt/semantics
+      - name: run semver incrementer
+        if: contains(github.ref, 'master')
+        run: |
+          echo "Incrementing semantic version and tagging branch"
+          semantics --patch=.*
+ 
