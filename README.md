@@ -1,3 +1,4 @@
+[![Go Report Card](https://goreportcard.com/badge/github.com/kai5263499/gouuidv6)](https://goreportcard.com/report/github.com/kai5263499/gouuidv6)
 
 "Version 6" UUIDs in Go
 =======================

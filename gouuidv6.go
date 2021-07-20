@@ -40,10 +40,20 @@ func (u UUID) String() string {
 	return fmt.Sprintf("%08x-%04x-%04x-%04x-%012x", u[:4], u[4:6], u[6:8], u[8:10], u[10:])
 }
 
+// Parse byte representation
+func ParseBytes(bs []byte) (UUID, error) {
+	var ret UUID
+	bigEnd.PutUint64(ret[8:], binary.BigEndian.Uint64(bs[8:]))
+	bigEnd.PutUint64(ret[:8], binary.BigEndian.Uint64(bs[:8]))
+	return ret, nil
+}
+
 // Parse text representation
 func Parse(us string) (UUID, error) {
 	var ret UUID
-	var v1, v2, v3, v4, v5 uint64
+	var v1 uint32
+	var v2, v3, v4 uint16
+	var v5 uint64 // node
 	_, err := fmt.Sscanf(us, "%08x-%04x-%04x-%04x-%012x", &v1, &v2, &v3, &v4, &v5)
 	if err != nil {
 		return ret, err
@@ -112,6 +122,21 @@ func (u UUID) Time() time.Time {
 	return time.Unix(ut/int64(time.Second), ut%int64(time.Second))
 }
 
+// Extract and return the node from the UUID.
+func (u UUID) Node() uint64 {
+
+	// verify version and variant fields
+	if !((u[6]&0xF0) == 0x60 && (u[8]&0xC0) == 0x80) {
+		return 0 // return zero time if not a version 6 UUID
+	}
+
+	i := int(bigEnd.Uint64(u[:8]))
+	bigEnd.Uint16(u[:8])
+	// mask := ^(1 >> 2)
+	// i &= mask
+	return uint64(i)
+}
+
 func NewFromTime(t time.Time) UUID {
 
 	// NOTE: We intentionally ignore RFC 4122 section 4.2.1.2. and in the case
@@ -154,9 +179,6 @@ func NewFromTime(t time.Time) UUID {
 // Return a new UUID initialized to a proper value according to "Version 6" rules.
 func New() UUID { return NewFromTime(time.Now()) }
 
-// Returns a timestamp appropriate for UUID time
-func ts() uint64 { return tsoff + uint64(time.Now().UnixNano()/100) }
-
 func tstime(t time.Time) uint64 { return tsoff + uint64(t.UnixNano()/100) }
 
 // UUID static time offset (see https://play.golang.org/p/pPJd86iZMW)
@@ -182,8 +204,9 @@ func init() {
 	b := make([]byte, 8)
 
 	// start with random clock sequence
-	rand.Read(b)
-	clockseq = bigEnd.Uint32(b[:4])
+	if _, err := rand.Read(b); err == nil {
+		clockseq = bigEnd.Uint32(b[:4])
+	}
 
 	// try to get first interface MAC and use that for node
 	ifs, _ := net.Interfaces()
@@ -210,7 +233,10 @@ func RandomizeNode() {
 
 func getRandomNode() uint64 {
 	b := make([]byte, 8)
-	rand.Read(b)
+	if _, err := rand.Read(b); err != nil {
+		return 0
+	}
+
 	// mask out high 2 bytes and set the multicast bit
 	return (bigEnd.Uint64(b[:8]) & 0x0000FFFFFFFFFFFF) | 0x0000010000000000
 }
@@ -218,4 +244,8 @@ func getRandomNode() uint64 {
 // AlwaysRandomizeNode sets the uuid generation in such way that each uuid has a random
 func AlwaysRandomizeNode() {
 	alwaysRandomizeNode = true
+}
+
+func GetNode() uint64 {
+	return node
 }
