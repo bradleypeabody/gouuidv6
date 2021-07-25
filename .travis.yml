@@ -1,0 +1,19 @@
+language: go
+
+arch:
+  - amd64
+  - arm64
+  - 386
+go:
+  - 1.14.x
+  - 1.15.x
+  - 1.16.x
+  - tip
+
+jobs:
+  allow_failures:
+    - go: 'tip'
+
+script: go test .
+
+
