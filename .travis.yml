@@ -16,4 +16,3 @@ jobs:
 
 script: go test .
 
-
