@@ -128,8 +128,7 @@ func TestDuplicates(t *testing.T) {
 
 		prefix := strings.Join(strings.Split(u.String(), "-")[:3], "-")
 
-		prefixCounter[prefix] += 1
-
+		prefixCounter[prefix]++
 	}
 
 	max := 0

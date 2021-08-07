@@ -22,16 +22,17 @@ var bigEnd = binary.BigEndian
 // UUID represents a "Version 6" UUID.
 type UUID [16]byte
 
+// Compare two UUIDs and return true of their lower 8 bytes
 func (u UUID) Compare(to UUID) bool {
 	return bigEnd.Uint64(u[:8]) <= bigEnd.Uint64(to[:8])
 }
 
-// Textual representation per RFC 4122, e.g. "f81d4fae-7dec-11d0-a765-00a0c91e6bf6"
+// String returns a textual representation per RFC 4122, e.g. "f81d4fae-7dec-11d0-a765-00a0c91e6bf6"
 func (u UUID) String() string {
 	return fmt.Sprintf("%08x-%04x-%04x-%04x-%012x", u[:4], u[4:6], u[6:8], u[8:10], u[10:])
 }
 
-// Parse byte representation
+// ParseBytes parses a slice of bytes into a UUID struct
 func ParseBytes(bs []byte) (UUID, error) {
 	var ret UUID
 	bigEnd.PutUint64(ret[8:], binary.BigEndian.Uint64(bs[8:]))
@@ -39,7 +40,7 @@ func ParseBytes(bs []byte) (UUID, error) {
 	return ret, nil
 }
 
-// Parse text representation
+// Parse text representation into a UUID struct
 func Parse(us string) (UUID, error) {
 	var ret UUID
 	var v1 uint32
@@ -57,9 +58,13 @@ func Parse(us string) (UUID, error) {
 	return ret, nil
 }
 
-func (u UUID) MarshalText() ([]byte, error)           { return []byte(u.String()), nil }
+// MarshalText returns the String representation of a UUID as a slice of bytes
+func (u UUID) MarshalText() ([]byte, error) { return []byte(u.String()), nil }
+
+// UnmarshalText
 func (u *UUID) UnmarshalText(text []byte) (err error) { *u, err = Parse(string(text)); return }
 
+// MarshalBinary
 func (u UUID) MarshalBinary() ([]byte, error)     { return u[:], nil }
 func (u *UUID) UnmarshalBinary(data []byte) error { copy(u[:], data); return nil }
 
@@ -74,10 +79,12 @@ func (u *UUID) UnmarshalJSON(data []byte) error {
 	return err
 }
 
+// Value returns a SQL driver.Value for persisting in a relational database
 func (u UUID) Value() (driver.Value, error) {
 	return []byte(u[:]), nil
 }
 
+// Scan takes an anonymous interface from SQL and populates a UUID struct
 func (u *UUID) Scan(value interface{}) error {
 	switch v := value.(type) {
 	case []byte:
@@ -88,13 +95,13 @@ func (u *UUID) Scan(value interface{}) error {
 	return fmt.Errorf("cannot convert from UUID to sql driver type %T", value)
 }
 
-// Return as byte slice.
+// Bytes returns UUID as byte slice
 func (u UUID) Bytes() []byte { return u[:] }
 
-// Return true if all UUID bytes are zero.
+// IsNil returns true if all UUID bytes are zero
 func (u UUID) IsNil() bool { return (bigEnd.Uint64(u[0:8]) | bigEnd.Uint64(u[8:16])) == 0 }
 
-// Extract and return the time from the UUID.
+// Time extracts and return the time from the UUID
 func (u UUID) Time() time.Time {
 
 	// verify version and variant fields
@@ -113,7 +120,7 @@ func (u UUID) Time() time.Time {
 	return time.Unix(ut/int64(time.Second), ut%int64(time.Second))
 }
 
-// Extract and return the node from the UUID.
+// Node extracts and return the node from the UUID
 func (u UUID) Node() uint64 {
 
 	// verify version and variant fields
