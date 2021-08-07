@@ -1,5 +1,5 @@
 name: Semver gouuidv6 library
-on: [merge]
+on: [push]
 jobs:
   semver:
     name: semantic version tagging on merge to master branch
