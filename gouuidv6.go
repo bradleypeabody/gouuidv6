@@ -1,5 +1,6 @@
-// Implements "Version 6" UUIDs in Go.  See http://bradleypeabody.github.io/uuidv6/
-// UUIDs sort correctly by time when naively sorted as raw bytes, have a Time()
+// Package gouuidv6 implements "Version 6" UUIDs in Go.
+// See http://bradleypeabody.github.io/uuidv6/ UUIDs sort
+// correctly by time when naively sorted as raw bytes, have a Time()
 // function that returns time the UUID was created and have a reasonable
 // guarantee of being globally unique (based on the specifications from
 // RFC 4122, with a few intentional exceptions.)
@@ -18,18 +19,8 @@ import (
 
 var bigEnd = binary.BigEndian
 
-// "Version 6" UUID.
+// UUID represents a "Version 6" UUID.
 type UUID [16]byte
-
-// Slice of UUIDs, sorts using first 64bits (where the time is)
-type UUIDSlice []UUID
-
-func (s UUIDSlice) Len() int { return len(s) }
-
-// FIXME: Not sure this is smart - why wouldn't we just sort by the entire binary value, to ensure consistency...
-func (s UUIDSlice) Less(i, j int) bool { return bigEnd.Uint64(s[i][:8]) < bigEnd.Uint64(s[j][:8]) }
-
-func (s UUIDSlice) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
 
 func (u UUID) Compare(to UUID) bool {
 	return bigEnd.Uint64(u[:8]) <= bigEnd.Uint64(to[:8])
@@ -137,6 +128,7 @@ func (u UUID) Node() uint64 {
 	return uint64(i)
 }
 
+// NewFromTime returns a new UUID set to the given time
 func NewFromTime(t time.Time) UUID {
 
 	// NOTE: We intentionally ignore RFC 4122 section 4.2.1.2. and in the case
@@ -176,7 +168,7 @@ func NewFromTime(t time.Time) UUID {
 
 }
 
-// Return a new UUID initialized to a proper value according to "Version 6" rules.
+// New returns a new UUID initialized to a proper value according to "Version 6" rules.
 func New() UUID { return NewFromTime(time.Now()) }
 
 func tstime(t time.Time) uint64 { return tsoff + uint64(t.UnixNano()/100) }
@@ -224,7 +216,7 @@ func init() {
 
 }
 
-// Set the 'node' part of the UUID to a random value, instead of using one
+// RandomizeNode sets the 'node' part of the UUID to a random value, instead of using one
 // of the MAC addresses from the system.  Use this if you are concerned about
 // the privacy aspect of using a MAC address.
 func RandomizeNode() {
@@ -246,6 +238,7 @@ func AlwaysRandomizeNode() {
 	alwaysRandomizeNode = true
 }
 
+// GetNode returns the node id this instance is using
 func GetNode() uint64 {
 	return node
 }
