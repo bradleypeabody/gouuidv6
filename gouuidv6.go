@@ -61,14 +61,19 @@ func Parse(us string) (UUID, error) {
 // MarshalText returns the String representation of a UUID as a slice of bytes
 func (u UUID) MarshalText() ([]byte, error) { return []byte(u.String()), nil }
 
-// UnmarshalText
+// UnmarshalText updates a UUID struct using a slice of bytes representing a UUID in string format
 func (u *UUID) UnmarshalText(text []byte) (err error) { *u, err = Parse(string(text)); return }
 
-// MarshalBinary
-func (u UUID) MarshalBinary() ([]byte, error)     { return u[:], nil }
+// MarshalBinary returns a UUID as a slice of bytes
+func (u UUID) MarshalBinary() ([]byte, error) { return u[:], nil }
+
+// UnmarshalBinary updates a UUID struct using a slice of bytes representing a UUID
 func (u *UUID) UnmarshalBinary(data []byte) error { copy(u[:], data); return nil }
 
+// MarshalJSON allows the UUID struct to be seamlessly used as a native json type
 func (u UUID) MarshalJSON() ([]byte, error) { return []byte(`"` + u.String() + `"`), nil }
+
+// UnmarshalJSON allows the UUID struct to be seamlessly used as a native json type
 func (u *UUID) UnmarshalJSON(data []byte) error {
 	s := ""
 	err := json.Unmarshal(data, &s)
@@ -79,12 +84,12 @@ func (u *UUID) UnmarshalJSON(data []byte) error {
 	return err
 }
 
-// Value returns a SQL driver.Value for persisting in a relational database
+// Value allows the UUID struct to be seamlessly used as a native SQL type
 func (u UUID) Value() (driver.Value, error) {
 	return []byte(u[:]), nil
 }
 
-// Scan takes an anonymous interface from SQL and populates a UUID struct
+// Scan allows the UUID struct to be seamlessly used as a native SQL type
 func (u *UUID) Scan(value interface{}) error {
 	switch v := value.(type) {
 	case []byte:
