@@ -1,4 +1,4 @@
-name: test
+name: race
 on: [push, pull_request]
 jobs:
   test:
@@ -15,5 +15,5 @@ jobs:
         id: go
       - name: Check out code into the Go module directory
         uses: actions/checkout@v1
-      - name: Run go test
-        run: go test -cover
+      - name: Run go race detector test
+        run: go test -race
