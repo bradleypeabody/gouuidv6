@@ -1,6 +1,5 @@
-name: static check
-on: pull_request
-
+name: static
+on: [push, pull_request]
 jobs:
   imports:
     name: Imports

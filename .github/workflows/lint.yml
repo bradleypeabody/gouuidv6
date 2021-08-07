@@ -1,4 +1,4 @@
-name: Lint gouuidv6 library
+name: lint
 on: [push, pull_request]
 jobs:
   lint:

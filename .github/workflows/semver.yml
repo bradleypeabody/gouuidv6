@@ -1,4 +1,4 @@
-name: Semver gouuidv6 library
+name: semver
 on: [push]
 jobs:
   semver:
