@@ -1,5 +1,6 @@
-// Implements "Version 6" UUIDs in Go.  See http://bradleypeabody.github.io/uuidv6/
-// UUIDs sort correctly by time when naively sorted as raw bytes, have a Time()
+// Package gouuidv6 implements "Version 6" UUIDs in Go.
+// See http://bradleypeabody.github.io/uuidv6/ UUIDs sort
+// correctly by time when naively sorted as raw bytes, have a Time()
 // function that returns time the UUID was created and have a reasonable
 // guarantee of being globally unique (based on the specifications from
 // RFC 4122, with a few intentional exceptions.)
@@ -18,29 +19,20 @@ import (
 
 var bigEnd = binary.BigEndian
 
-// "Version 6" UUID.
+// UUID represents a "Version 6" UUID.
 type UUID [16]byte
 
-// Slice of UUIDs, sorts using first 64bits (where the time is)
-type UUIDSlice []UUID
-
-func (s UUIDSlice) Len() int { return len(s) }
-
-// FIXME: Not sure this is smart - why wouldn't we just sort by the entire binary value, to ensure consistency...
-func (s UUIDSlice) Less(i, j int) bool { return bigEnd.Uint64(s[i][:8]) < bigEnd.Uint64(s[j][:8]) }
-
-func (s UUIDSlice) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
-
+// Compare two UUIDs and return true of their lower 8 bytes
 func (u UUID) Compare(to UUID) bool {
 	return bigEnd.Uint64(u[:8]) <= bigEnd.Uint64(to[:8])
 }
 
-// Textual representation per RFC 4122, e.g. "f81d4fae-7dec-11d0-a765-00a0c91e6bf6"
+// String returns a textual representation per RFC 4122, e.g. "f81d4fae-7dec-11d0-a765-00a0c91e6bf6"
 func (u UUID) String() string {
 	return fmt.Sprintf("%08x-%04x-%04x-%04x-%012x", u[:4], u[4:6], u[6:8], u[8:10], u[10:])
 }
 
-// Parse byte representation
+// ParseBytes parses a slice of bytes into a UUID struct
 func ParseBytes(bs []byte) (UUID, error) {
 	var ret UUID
 	bigEnd.PutUint64(ret[8:], binary.BigEndian.Uint64(bs[8:]))
@@ -48,7 +40,7 @@ func ParseBytes(bs []byte) (UUID, error) {
 	return ret, nil
 }
 
-// Parse text representation
+// Parse text representation into a UUID struct
 func Parse(us string) (UUID, error) {
 	var ret UUID
 	var v1 uint32
@@ -66,13 +58,22 @@ func Parse(us string) (UUID, error) {
 	return ret, nil
 }
 
-func (u UUID) MarshalText() ([]byte, error)           { return []byte(u.String()), nil }
+// MarshalText returns the String representation of a UUID as a slice of bytes
+func (u UUID) MarshalText() ([]byte, error) { return []byte(u.String()), nil }
+
+// UnmarshalText updates a UUID struct using a slice of bytes representing a UUID in string format
 func (u *UUID) UnmarshalText(text []byte) (err error) { *u, err = Parse(string(text)); return }
 
-func (u UUID) MarshalBinary() ([]byte, error)     { return u[:], nil }
+// MarshalBinary returns a UUID as a slice of bytes
+func (u UUID) MarshalBinary() ([]byte, error) { return u[:], nil }
+
+// UnmarshalBinary updates a UUID struct using a slice of bytes representing a UUID
 func (u *UUID) UnmarshalBinary(data []byte) error { copy(u[:], data); return nil }
 
+// MarshalJSON allows the UUID struct to be seamlessly used as a native json type
 func (u UUID) MarshalJSON() ([]byte, error) { return []byte(`"` + u.String() + `"`), nil }
+
+// UnmarshalJSON allows the UUID struct to be seamlessly used as a native json type
 func (u *UUID) UnmarshalJSON(data []byte) error {
 	s := ""
 	err := json.Unmarshal(data, &s)
@@ -83,10 +84,12 @@ func (u *UUID) UnmarshalJSON(data []byte) error {
 	return err
 }
 
+// Value allows the UUID struct to be seamlessly used as a native SQL type
 func (u UUID) Value() (driver.Value, error) {
 	return []byte(u[:]), nil
 }
 
+// Scan allows the UUID struct to be seamlessly used as a native SQL type
 func (u *UUID) Scan(value interface{}) error {
 	switch v := value.(type) {
 	case []byte:
@@ -97,13 +100,13 @@ func (u *UUID) Scan(value interface{}) error {
 	return fmt.Errorf("cannot convert from UUID to sql driver type %T", value)
 }
 
-// Return as byte slice.
+// Bytes returns UUID as byte slice
 func (u UUID) Bytes() []byte { return u[:] }
 
-// Return true if all UUID bytes are zero.
+// IsNil returns true if all UUID bytes are zero
 func (u UUID) IsNil() bool { return (bigEnd.Uint64(u[0:8]) | bigEnd.Uint64(u[8:16])) == 0 }
 
-// Extract and return the time from the UUID.
+// Time extracts and return the time from the UUID
 func (u UUID) Time() time.Time {
 
 	// verify version and variant fields
@@ -122,7 +125,7 @@ func (u UUID) Time() time.Time {
 	return time.Unix(ut/int64(time.Second), ut%int64(time.Second))
 }
 
-// Extract and return the node from the UUID.
+// Node extracts and return the node from the UUID
 func (u UUID) Node() uint64 {
 
 	// verify version and variant fields
@@ -137,6 +140,7 @@ func (u UUID) Node() uint64 {
 	return uint64(i)
 }
 
+// NewFromTime returns a new UUID set to the given time
 func NewFromTime(t time.Time) UUID {
 
 	// NOTE: We intentionally ignore RFC 4122 section 4.2.1.2. and in the case
@@ -176,7 +180,7 @@ func NewFromTime(t time.Time) UUID {
 
 }
 
-// Return a new UUID initialized to a proper value according to "Version 6" rules.
+// New returns a new UUID initialized to a proper value according to "Version 6" rules.
 func New() UUID { return NewFromTime(time.Now()) }
 
 func tstime(t time.Time) uint64 { return tsoff + uint64(t.UnixNano()/100) }
@@ -224,7 +228,7 @@ func init() {
 
 }
 
-// Set the 'node' part of the UUID to a random value, instead of using one
+// RandomizeNode sets the 'node' part of the UUID to a random value, instead of using one
 // of the MAC addresses from the system.  Use this if you are concerned about
 // the privacy aspect of using a MAC address.
 func RandomizeNode() {
@@ -246,6 +250,7 @@ func AlwaysRandomizeNode() {
 	alwaysRandomizeNode = true
 }
 
+// GetNode returns the node id this instance is using
 func GetNode() uint64 {
 	return node
 }
