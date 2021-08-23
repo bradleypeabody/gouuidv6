@@ -103,6 +103,12 @@ func (u *UUID) Scan(value interface{}) error {
 // Bytes returns UUID as byte slice
 func (u UUID) Bytes() []byte { return u[:] }
 
+// HighBytes returns the first 8 bytes of a UUID
+func (u UUID) HighBytes() []byte { return u[:8] }
+
+// LowBytes returns the last 8 bytes of a UUID
+func (u UUID) LowBytes() []byte { return u[8:] }
+
 // IsNil returns true if all UUID bytes are zero
 func (u UUID) IsNil() bool { return (bigEnd.Uint64(u[0:8]) | bigEnd.Uint64(u[8:16])) == 0 }
 
@@ -128,15 +134,10 @@ func (u UUID) Time() time.Time {
 // Node extracts and return the node from the UUID
 func (u UUID) Node() uint64 {
 
-	// verify version and variant fields
-	if !((u[6]&0xF0) == 0x60 && (u[8]&0xC0) == 0x80) {
-		return 0 // return zero time if not a version 6 UUID
-	}
+	b := []byte{0, 0, 0, 0, 0, 0, 0, 0}
+	copy(b[2:], u[10:])
+	i := uint64(bigEnd.Uint64(b))
 
-	i := int(bigEnd.Uint64(u[:8]))
-	bigEnd.Uint16(u[:8])
-	// mask := ^(1 >> 2)
-	// i &= mask
 	return uint64(i)
 }
 
@@ -167,7 +168,7 @@ func NewFromTime(t time.Time) UUID {
 
 	// 2 bit variant, 14 bits clock sequence, 48 bits node
 	lo := (uint64(0x8000) << 48) | (uint64(cs&0x3fff) << 48)
-	if alwaysRandomizeNode {
+	if alwaysRandomizeNode || node == 0 {
 		lo = lo | getRandomNode()
 	} else {
 		lo = lo | node
@@ -177,7 +178,6 @@ func NewFromTime(t time.Time) UUID {
 	bigEnd.PutUint64(ret[8:], lo)
 
 	return ret
-
 }
 
 // New returns a new UUID initialized to a proper value according to "Version 6" rules.
@@ -204,7 +204,6 @@ var node uint64
 var alwaysRandomizeNode bool
 
 func init() {
-
 	b := make([]byte, 8)
 
 	// start with random clock sequence
@@ -212,20 +211,25 @@ func init() {
 		clockseq = bigEnd.Uint32(b[:4])
 	}
 
+	mn := getMacNode()
+	if mn != 0 {
+		node = mn
+	}
+
+	// no node yet, make it random
+	RandomizeNode()
+}
+
+func getMacNode() uint64 {
 	// try to get first interface MAC and use that for node
 	ifs, _ := net.Interfaces()
 	for _, i := range ifs {
 		if len(i.HardwareAddr) >= 6 {
-			node = uint64(bigEnd.Uint16(i.HardwareAddr[:2]))<<32 | uint64(bigEnd.Uint32(i.HardwareAddr[2:6]))
-			break
+			return uint64(bigEnd.Uint16(i.HardwareAddr[:2]))<<32 | uint64(bigEnd.Uint32(i.HardwareAddr[2:6]))
 		}
 	}
 
-	// no node yet, make it random
-	if node == 0 {
-		RandomizeNode()
-	}
-
+	return 0
 }
 
 // RandomizeNode sets the 'node' part of the UUID to a random value, instead of using one
@@ -242,7 +246,9 @@ func getRandomNode() uint64 {
 	}
 
 	// mask out high 2 bytes and set the multicast bit
-	return (bigEnd.Uint64(b[:8]) & 0x0000FFFFFFFFFFFF) | 0x0000010000000000
+	randNode := (bigEnd.Uint64(b[:8]) & 0x0000FFFFFFFFFFFF) | 0x0000010000000000
+
+	return randNode
 }
 
 // AlwaysRandomizeNode sets the uuid generation in such way that each uuid has a random
@@ -253,4 +259,10 @@ func AlwaysRandomizeNode() {
 // GetNode returns the node id this instance is using
 func GetNode() uint64 {
 	return node
+}
+
+// SetNode sets the node used for uuidv6's
+func SetNode(nodeId uint64) {
+	alwaysRandomizeNode = false
+	node = nodeId
 }

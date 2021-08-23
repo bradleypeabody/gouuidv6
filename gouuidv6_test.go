@@ -1,7 +1,9 @@
 package gouuidv6
 
 import (
+	"encoding/hex"
 	"encoding/json"
+	"log"
 	"runtime"
 	"strings"
 	"sync"
@@ -45,7 +47,6 @@ func TestUUIDSimple(t *testing.T) {
 	str2 := `1E65DA3A-36E8-617E-9FCC-C8BCC8A0B17D`
 	uuid2, _ := Parse(str2)
 	t.Logf("Extracted time: %v", uuid2.Time())
-
 }
 
 func TestUUIDJSON(t *testing.T) {
@@ -76,7 +77,6 @@ func TestUUIDJSON(t *testing.T) {
 	if ex.ID.String() != "1e65c43f-c7c4-47fb-28fc-c8bcc8a0b1fd" {
 		t.Fatalf("Did not get expected ID back from JSON unmarshal, instead got: %s", ex.ID.String())
 	}
-
 }
 
 func TestDuplicates(t *testing.T) {
@@ -141,5 +141,152 @@ func TestDuplicates(t *testing.T) {
 	}
 
 	t.Logf("Prefix with highest count was: %q (%d)", maxp, max)
+}
 
+func TestRandomizedNode(t *testing.T) {
+	AlwaysRandomizeNode()
+
+	uuid := New()
+
+	if uuid.IsNil() {
+		t.Fatalf("New UUID should never be nil but was")
+	}
+
+	if GetNode() == uuid.Node() {
+		t.Fatalf("randomized node id is the same as init node id")
+	}
+}
+
+func TestRandomizedNodeOnNoMac(t *testing.T) {
+	node = 0
+
+	uuid := New()
+
+	if uuid.IsNil() {
+		t.Fatalf("New UUID should never be nil but was")
+	}
+
+	if GetNode() == uuid.Node() {
+		t.Fatalf("randomized node id is the same as init node id")
+	}
+}
+
+func TestSpecifiedNodeID(t *testing.T) {
+	SetNode(123)
+
+	uuid := New()
+
+	if uuid.IsNil() {
+		t.Fatalf("New UUID should never be nil but was")
+	}
+
+	if GetNode() != uuid.Node() {
+		t.Fatalf("specified node id is not the same as init node id")
+	}
+
+	if uuid.Node() != 123 {
+		t.Fatalf("specified node id is not 123")
+	}
+}
+
+func TestSerializedUUID(t *testing.T) {
+	uuid := New()
+
+	if uuid.IsNil() {
+		t.Fatalf("New UUID should never be nil but was")
+	}
+
+	uuidBytes := uuid.Bytes()
+	if len(uuidBytes) != 16 {
+		t.Fatalf("serialized bytes is not 16")
+	}
+
+	uuidHighBytes := uuid.HighBytes()
+	if len(uuidHighBytes) != 8 {
+		t.Fatalf("serialized high bytes is not 8")
+	}
+
+	uuidLowBytes := uuid.LowBytes()
+	if len(uuidLowBytes) != 8 {
+		t.Fatalf("serialized bytes is not 8")
+	}
+
+	uuidMarshalText, err := uuid.MarshalText()
+	if err != nil {
+		t.Fatalf("error with MarshalText")
+	}
+	if uuid.String() != string(uuidMarshalText) {
+		t.Fatalf("uuid string and MarshalText don't match")
+	}
+
+	id2 := UUID{}
+	err = id2.UnmarshalText(uuidMarshalText)
+	if err != nil {
+		log.Fatalf("error with UnmarshalText")
+	}
+
+	if id2 != uuid {
+		log.Fatalf("id2 != uuid")
+	}
+
+	id3, err := Parse("1ec0450e-5a64-6ca0-80fc-abd6a5cdb616")
+	if err != nil {
+		log.Fatalf("error with Parse")
+	}
+
+	if id3.Node() != 188938393073174 {
+		log.Fatalf("parsed id has wrong Node id")
+	}
+
+	data, err := hex.DecodeString("1ec0450e5a646ca080fcabd6a5cdb616")
+	if err != nil {
+		log.Fatalf("error decoding hex string")
+	}
+	id4, err := ParseBytes(data)
+	if err != nil {
+		log.Fatalf("error with ParseByte")
+	}
+	if id4 != id3 {
+		log.Fatalf("Parse does not yield the same UUID as ParseBytes")
+	}
+
+	dbVal, err := id4.Value()
+	if err != nil {
+		log.Fatalf("error with Value")
+	}
+
+	id5 := UUID{}
+	err = id5.Scan(dbVal)
+	if err != nil {
+		log.Fatalf("error with Scan")
+	}
+	if id4 != id5 {
+		log.Fatalf("Scan does not yield the same UUID as Parse")
+	}
+
+	id4Binary, err := id4.MarshalBinary()
+	if err != nil {
+		log.Fatalf("error with MarshalBinary")
+	}
+
+	id6 := UUID{}
+	err = id6.UnmarshalBinary(id4Binary)
+	if err != nil {
+		log.Fatalf("error with UnmarshalBinary")
+	}
+	if id4 != id6 {
+		log.Fatalf("UnmarshalBinary does not yield the same UUID as Parse")
+	}
+}
+
+func TestUUIDCompare(t *testing.T) {
+	id1 := New()
+
+	time.Sleep(100 * time.Millisecond)
+
+	id2 := New()
+
+	if id2.Compare(id1) {
+		log.Fatalf("id2 should compare as true (greater) to id1")
+	}
 }
