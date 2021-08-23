@@ -262,7 +262,7 @@ func GetNode() uint64 {
 }
 
 // SetNode sets the node used for uuidv6's
-func SetNode(nodeId uint64) {
+func SetNode(nodeID uint64) {
 	alwaysRandomizeNode = false
-	node = nodeId
+	node = nodeID
 }
