@@ -219,14 +219,14 @@ func TestSerializedUUID(t *testing.T) {
 		t.Fatalf("uuid string and MarshalText don't match")
 	}
 
-	unmarshalTextUuid := UUID{}
-	err = unmarshalTextUuid.UnmarshalText(uuidMarshalText)
+	unmarshalTextUUID := UUID{}
+	err = unmarshalTextUUID.UnmarshalText(uuidMarshalText)
 	if err != nil {
 		log.Fatalf("error with UnmarshalText")
 	}
 
-	if unmarshalTextUuid != uuid {
-		log.Fatalf("id2 != uuid")
+	if unmarshalTextUUID != uuid {
+		log.Fatalf("unmarshalTextUUID != uuid")
 	}
 }
 
@@ -243,12 +243,12 @@ func TestUUIDCompare(t *testing.T) {
 }
 
 func TestParseAndParseBinary(t *testing.T) {
-	parsedId, err := Parse("1ec0450e-5a64-6ca0-80fc-abd6a5cdb616")
+	parsedID, err := Parse("1ec0450e-5a64-6ca0-80fc-abd6a5cdb616")
 	if err != nil {
 		log.Fatalf("error with Parse")
 	}
 
-	if parsedId.Node() != 188938393073174 {
+	if parsedID.Node() != 188938393073174 {
 		log.Fatalf("parsed id has wrong Node id")
 	}
 
@@ -256,25 +256,25 @@ func TestParseAndParseBinary(t *testing.T) {
 	if err != nil {
 		log.Fatalf("error decoding hex string")
 	}
-	parsedBytesId, err := ParseBytes(data)
+	parsedBytesID, err := ParseBytes(data)
 	if err != nil {
 		log.Fatalf("error with ParseByte")
 	}
-	if parsedBytesId != parsedId {
+	if parsedBytesID != parsedID {
 		log.Fatalf("Parse does not yield the same UUID as ParseBytes")
 	}
 
-	id4Binary, err := parsedId.MarshalBinary()
+	id4Binary, err := parsedID.MarshalBinary()
 	if err != nil {
 		log.Fatalf("error with MarshalBinary")
 	}
 
-	unmarshalBinaryId := UUID{}
-	err = unmarshalBinaryId.UnmarshalBinary(id4Binary)
+	unmarshalBinaryID := UUID{}
+	err = unmarshalBinaryID.UnmarshalBinary(id4Binary)
 	if err != nil {
 		log.Fatalf("error with UnmarshalBinary")
 	}
-	if parsedId != unmarshalBinaryId {
+	if parsedID != unmarshalBinaryID {
 		log.Fatalf("UnmarshalBinary does not yield the same UUID as Parse")
 	}
 }
