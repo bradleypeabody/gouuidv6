@@ -287,12 +287,12 @@ func TestSQLSerialization(t *testing.T) {
 		log.Fatalf("error with Value")
 	}
 
-	sqlUuid := UUID{}
-	err = sqlUuid.Scan(dbVal)
+	sqlUUID := UUID{}
+	err = sqlUUID.Scan(dbVal)
 	if err != nil {
 		log.Fatalf("error with Scan")
 	}
-	if uuid != sqlUuid {
+	if uuid != sqlUUID {
 		log.Fatalf("Scan does not yield the same UUID as Parse")
 	}
 }
