@@ -134,7 +134,7 @@ func (u UUID) Time() time.Time {
 // Node extracts and return the node from the UUID
 func (u UUID) Node() uint64 {
 
-	b := []byte{0, 0, 0, 0, 0, 0, 0, 0}
+	var b []byte = make([]byte, 16)
 	copy(b[2:], u[10:])
 	i := uint64(bigEnd.Uint64(b))
 
